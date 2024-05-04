@@ -17,6 +17,7 @@
 package plugin
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -32,6 +33,10 @@ import (
 	"github.com/fatedier/frp/pkg/transport"
 	"github.com/fatedier/frp/pkg/util/log"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 func init() {
@@ -105,7 +110,35 @@ func NewHTTPS2HTTPSPlugin(options v1.ClientPluginOptions) (Plugin, error) {
 }
 
 func (p *HTTPS2HTTPSPlugin) genTLSConfig() (*tls.Config, error) {
-	cert, err := tls.LoadX509KeyPair(p.opts.CrtPath, p.opts.KeyPath)
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
+	if err != nil {
+		log.Errorf("unable to load SDK config, do you have the env set ?, %v", err)
+	}
+
+	client := ssm.NewFromConfig(cfg)
+
+	certParam := "arn:aws:ssm:eu-west-2:956880242582:parameter/paythru/sslcerts/wildcard.paythrutools.com/cert.pem"
+	keyParam := "arn:aws:ssm:eu-west-2:956880242582:parameter/paythru/sslcerts/wildcard.paythrutools.com/privkey.pem"
+
+	result, err := client.GetParameter(context.TODO(), &ssm.GetParameterInput{
+		Name:           &certParam,
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		log.Errorf("unable to get cert, %v", err)
+	}
+	certValue := *result.Parameter.Value
+
+	result, err = client.GetParameter(context.TODO(), &ssm.GetParameterInput{
+		Name:           &keyParam,
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		log.Errorf("unable to get key, %v", err)
+	}
+	keyValue := *result.Parameter.Value
+
+	cert, err := tls.X509KeyPair([]byte(certValue), []byte(keyValue))
 	if err != nil {
 		return nil, err
 	}
