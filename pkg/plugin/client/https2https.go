@@ -117,8 +117,8 @@ func (p *HTTPS2HTTPSPlugin) genTLSConfig() (*tls.Config, error) {
 
 	client := ssm.NewFromConfig(cfg)
 
-	certParam := "arn:aws:ssm:eu-west-2:956880242582:parameter/paythru/sslcerts/wildcard.paythrutools.com/cert.pem"
-	keyParam := "arn:aws:ssm:eu-west-2:956880242582:parameter/paythru/sslcerts/wildcard.paythrutools.com/privkey.pem"
+	certParam := "arn:aws:ssm:eu-west-2:956880242582:parameter/paythru/sslcerts/wildcard.tunnels.paythrutools.com/cert.pem"
+	keyParam := "arn:aws:ssm:eu-west-2:956880242582:parameter/paythru/sslcerts/wildcard.tunnels.paythrutools.com/privkey.pem"
 
 	result, err := client.GetParameter(context.TODO(), &ssm.GetParameterInput{
 		Name:           &certParam,
